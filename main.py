@@ -55,4 +55,4 @@ with st.container():
 
 # Footer
 st.markdown("---")
-st.markdown("Created by Darius Vincent Ardales", help="PageWise - Ask more, scroll less.")
+st.markdown("Created by Darius Vincent Ardales", help="PH - Machine Learning Engineer (GenAI Track) Take-Home Exam")

@@ -4,7 +4,8 @@ import streamlit as st
 st.set_page_config(
     page_title="PageWise - Dashboard",
     page_icon="📖",
-    layout="wide"
+    layout="wide",
+    initial_sidebar_state="collapsed"
 )
 
 # Hide the sidebar navigation
@@ -21,7 +22,7 @@ st.markdown(
 # Check authentication status
 if 'authenticated' not in st.session_state or not st.session_state.authenticated:
     st.error("Access denied. Please log in on the main page.")
-    st.stop()
+    st.switch_page("main.py")
 
 # Create header with Exit button
 col1, col2 = st.columns([10, 1])
