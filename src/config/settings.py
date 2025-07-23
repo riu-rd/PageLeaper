@@ -1,7 +1,6 @@
 import os
 from dotenv import load_dotenv
 
-# Load environment variables
 load_dotenv()
 
 # API Keys
@@ -44,7 +43,7 @@ I can analyze lengthy PDF and DOCX files to help you find information, answer qu
 
 I'm ready to help you navigate through your documents efficiently. What would you like to know?"""
 
-PROMPT_TEMPLATE = """You are PageWise, a helpful document analysis assistant. Answer the user's question based on the provided document context. Be comprehensive but concise.
+PROMPT_TEMPLATE = """You are PageWise, a helpful document analysis assistant. {document_info}Answer the user's question based on the provided document context. Be comprehensive but concise.
 
 User Question: {user_question}
 

@@ -8,5 +8,6 @@ from .components import (
     render_chat_interface, 
     render_file_uploader,
     render_document_status,
-    get_chat_input
+    get_chat_input,
+    render_sample_prompts
 )

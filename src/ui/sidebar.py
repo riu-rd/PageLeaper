@@ -7,6 +7,14 @@ from src.config import MODEL_OPTIONS, CONFIG_WARNING, NEW_SESSION_WARNING
 def render_configuration_sidebar():
     """Render the configuration sidebar"""
     st.markdown("### ⚙️ Configurations")
+    
+    # Debug: Show current active configuration
+    # st.caption(f"**Active Config:**")
+    # st.caption(f"Model: {st.session_state.model_config['model']}")
+    # st.caption(f"Temp: {st.session_state.model_config['temperature']}")
+    # st.caption(f"Top-K: {st.session_state.model_config['top_k']}")
+    # st.caption(f"Top-P: {st.session_state.model_config['top_p']}")
+    
     st.divider()
     
     # Model selection
@@ -67,13 +75,14 @@ def render_configuration_sidebar():
             col1, col2 = st.columns(2)
             with col1:
                 if st.button("Confirm", key="confirm_apply_btn", type="primary"):
-                    # Update configuration
+
                     st.session_state.model_config['model'] = new_model
                     st.session_state.model_config['temperature'] = new_temp
                     st.session_state.model_config['top_k'] = new_top_k
                     st.session_state.model_config['top_p'] = new_top_p
-                    # Reset session
+                    
                     reset_session(clear_all=False)
+                    
                     st.success("Configuration updated!")
                     time.sleep(0.5)
                     st.rerun()

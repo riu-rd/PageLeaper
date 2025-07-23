@@ -57,6 +57,23 @@ def build_prompt_with_context(user_input, contexts):
     """Build prompt with document context"""
     context_text = ""
     
+    # Build document info for the system prompt
+    processed_files = st.session_state.processed_files
+    document_count = st.session_state.document_count
+    
+    # Get unique filenames from processed files (simplified approach)
+    file_names = []
+    if contexts:
+        unique_files = set()
+        for ctx in contexts:
+            unique_files.add(ctx['filename'])
+        file_names = list(unique_files)
+    
+    if file_names:
+        document_info = f"You have access to {len(file_names)} document(s) in this session: {', '.join(file_names)}. Total document chunks available: {document_count}. "
+    else:
+        document_info = f"You have access to {len(processed_files)} document(s) in this session with {document_count} total chunks available. "
+    
     if contexts:
         context_text = "\n\nRelevant document excerpts:\n"
         for ctx in contexts:
@@ -64,6 +81,7 @@ def build_prompt_with_context(user_input, contexts):
             context_text += f"\n[{ctx['filename']} - Page {ctx['page']}{chunk_info}]\n{ctx['content']}\n"
     
     return PROMPT_TEMPLATE.format(
+        document_info=document_info,
         user_question=user_input,
         context_text=context_text
     )

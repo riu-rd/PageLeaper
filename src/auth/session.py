@@ -22,6 +22,7 @@ def initialize_session_states():
         'document_count': 0,
         'model_config': DEFAULT_MODEL_CONFIG.copy(),
         'processed_files': set(),
+        'uploaded_filenames': [],
         'confirm_apply': False,
         'confirm_new_session': False,
         'file_uploader_key': 0
@@ -51,6 +52,7 @@ def reset_session(clear_all=False):
         st.session_state.embed_fn = None
         st.session_state.document_count = 0
         st.session_state.processed_files = set()
+        st.session_state.uploaded_filenames = []
         # Increment file uploader key to clear files
         st.session_state.file_uploader_key += 1
     
