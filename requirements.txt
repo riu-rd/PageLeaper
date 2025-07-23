@@ -9,3 +9,6 @@ python-dotenv
 chromadb
 pypdf2
 python-docx
+
+google-cloud-aiplatform
+google-cloud-logging
