@@ -27,7 +27,7 @@ MODEL_OPTIONS = {
 }
 
 # ChromaDB
-COLLECTION_NAME = "pagewise_docs"
+COLLECTION_NAME = "pageleaper_docs"
 EMBEDDING_MODEL = "models/text-embedding-004"
 EMBEDDING_DIMENSION = 768
 DEFAULT_SEARCH_RESULTS = 10
@@ -37,13 +37,13 @@ EMBEDDING_TASK_DOCUMENT = "retrieval_document"
 EMBEDDING_TASK_QUERY = "retrieval_query"
 
 # UI Messages
-INITIAL_MESSAGE = """Hello! I'm PageWise, your comprehensive document understanding agent. 
+INITIAL_MESSAGE = """Hello! I'm PageLeaper, your comprehensive document understanding agent. 
     
 I can analyze lengthy PDF and DOCX files to help you find information, answer questions, and gain insights from your documents. Simply upload your files using the button below, and then ask me anything about their content!
 
 I'm ready to help you navigate through your documents efficiently. What would you like to know?"""
 
-PROMPT_TEMPLATE = """You are PageWise, a helpful document analysis assistant. {document_info}Answer the user's question based on the provided document context. Be comprehensive but concise.
+PROMPT_TEMPLATE = """You are PageLeaper, a helpful document analysis assistant. {document_info}Answer the user's question based on the provided document context. Be comprehensive but concise.
 
 User Question: {user_question}
 
@@ -52,8 +52,8 @@ User Question: {user_question}
 Please provide a clear and helpful answer based on the documents provided."""
 
 # Page Configuration
-PAGE_TITLE_MAIN = "PageWise - Authentication"
-PAGE_TITLE_DASHBOARD = "PageWise - Dashboard"
+PAGE_TITLE_MAIN = "PageLeaper - Authentication"
+PAGE_TITLE_DASHBOARD = "PageLeaper - Dashboard"
 PAGE_ICON = "📖"
 
 # UI Text

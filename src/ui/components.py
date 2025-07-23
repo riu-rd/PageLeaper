@@ -7,8 +7,8 @@ from src.chat.handler import handle_user_input
 
 
 def render_header_main():
-    st.title("PageWise")
-    st.caption("Ask more, scroll less.")
+    st.title("PageLeaper")
+    st.caption("Skip the reading, get the knowledge.")
 
 def authenticate_user():
     """Handle authentication logic"""
@@ -45,8 +45,8 @@ def render_header():
     """Render the page header with title and exit button"""
     col1, col2 = st.columns([10, 1])
     with col1:
-        st.title("PageWise")
-        st.caption("Ask more, scroll less.")
+        st.title("PageLeaper")
+        st.caption("Skip the reading, get the knowledge.")
     with col2:
         if st.button("Exit", key="exit_button"):
             st.session_state.authenticated = False
