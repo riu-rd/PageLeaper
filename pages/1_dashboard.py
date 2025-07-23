@@ -20,70 +20,15 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# Custom CSS for responsive design and sticky bottom
+# Hide sidebar navigation only
 st.markdown(
     """
     <style>
-        /* Hide default sidebar navigation */
         [data-testid="stSidebarNav"] {display: none;}
         [data-testid="stSidebar"] {display: none;}
-        
-        /* Make main content area scrollable */
-        .main .block-container {
-            padding-bottom: 180px;
-            max-height: calc(100vh - 180px);
-            overflow-y: auto;
-        }
-        
-        /* Sticky bottom container */
-        .stBottom {
-            position: fixed;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            background-color: white;
-            padding: 1rem 2rem;
-            box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
-            z-index: 999;
-        }
-        
-        /* Dark mode support */
-        @media (prefers-color-scheme: dark) {
-            .stBottom {
-                background-color: #0e1117;
-            }
-        }
-        
-        /* Mobile responsive */
-        @media (max-width: 768px) {
-            .main .block-container {
-                padding-left: 1rem;
-                padding-right: 1rem;
-                padding-bottom: 200px;
-            }
-            .stBottom {
-                padding: 0.5rem 1rem;
-            }
-        }
-        
-        /* Style file uploader */
-        [data-testid="stFileUploader"] {
-            margin-bottom: 0.5rem;
-        }
-        
-        /* Right sidebar styling */
-        .sidebar-content {
-            background-color: #f0f2f6;
-            padding: 1rem;
-            border-radius: 0.5rem;
-            height: 100%;
-        }
-        
-        /* Dark mode sidebar */
-        @media (prefers-color-scheme: dark) {
-            .sidebar-content {
-                background-color: #262730;
-            }
+
+        .uploadedFile {
+            display: none !important;
         }
     </style>
     """,
@@ -102,19 +47,25 @@ if 'chat_session' not in st.session_state:
     st.session_state.chat_session = None
 if 'chroma_db' not in st.session_state:
     st.session_state.chroma_db = None
+if 'embed_fn' not in st.session_state:
+    st.session_state.embed_fn = None
 if 'document_count' not in st.session_state:
     st.session_state.document_count = 0
 if 'model_config' not in st.session_state:
     st.session_state.model_config = {
-        'model': 'gemini-2.0-flash-exp',
+        'model': 'gemini-2.5-flash',
         'temperature': 0.35,
         'top_k': 40,
         'top_p': 0.95
     }
 if 'processed_files' not in st.session_state:
     st.session_state.processed_files = set()
-if 'show_sidebar' not in st.session_state:
-    st.session_state.show_sidebar = False
+if 'confirm_apply' not in st.session_state:
+    st.session_state.confirm_apply = False
+if 'confirm_new_session' not in st.session_state:
+    st.session_state.confirm_new_session = False
+if 'file_uploader_key' not in st.session_state:
+    st.session_state.file_uploader_key = 0
 
 # Constants
 MAX_FILES = 5
@@ -336,117 +287,156 @@ def search_documents(query, db, embed_fn, n_results=5):
     
     return contexts
 
-# Create main layout with optional right sidebar
-if st.session_state.show_sidebar:
-    main_col, sidebar_col = st.columns([3, 1])
-else:
-    main_col = st.container()
-    sidebar_col = None
+# Function to reset session
+def reset_session(clear_all=False):
+    """Reset session state. If clear_all is True, also clear documents."""
+    if clear_all:
+        # Reset ChromaDB collection
+        try:
+            chroma_client = chromadb.Client()
+            chroma_client.delete_collection("pagewise_docs")
+        except:
+            pass  # Collection might not exist
+        
+        # Clear the cached init_chromadb function to force reinitialization
+        init_chromadb.clear()
+        
+        st.session_state.chroma_db = None
+        st.session_state.embed_fn = None
+        st.session_state.document_count = 0
+        st.session_state.processed_files = set()
+        # Increment file uploader key to clear files
+        st.session_state.file_uploader_key += 1
+    
+    # Always clear chat
+    st.session_state.messages = []
+    st.session_state.chat_session = None
+    
+    # Reset confirmation states
+    st.session_state.confirm_apply = False
+    st.session_state.confirm_new_session = False
+
+# Create main layout with configurations sidebar
+main_col, config_col = st.columns([3, 1])
 
 # Main content area
 with main_col:
     # Create header with Exit button
-    col1, col2, col3 = st.columns([10, 1, 1])
+    col1, col2 = st.columns([10, 1])
     with col1:
         st.title("PageWise")
         st.caption("Ask more, scroll less.")
     with col2:
-        if st.button("🔧", key="config_button", help="Configurations"):
-            st.session_state.show_sidebar = not st.session_state.show_sidebar
-            st.rerun()
-    with col3:
         if st.button("Exit", key="exit_button"):
             st.session_state.authenticated = False
             st.switch_page("main.py")
 
-# Right sidebar for configurations
-if sidebar_col is not None:
-    with sidebar_col:
-        st.markdown("### ⚙️ Configurations")
-        st.divider()
-        
-        # Model selection
-        model_option = st.radio(
-            "Model",
-            ["Faster", "Powerful"],
-            index=0 if st.session_state.model_config['model'] == 'gemini-2.5-flash' else 1,
-            key="model_radio"
-        )
-        new_model = 'gemini-2.5-flash' if model_option == "Faster" else 'gemini-2.5-pro'
-        
-        # Temperature
-        new_temp = st.slider(
-            "Temperature",
-            min_value=0.1,
-            max_value=1.5,
-            value=st.session_state.model_config['temperature'],
-            step=0.05,
-            key="temp_slider"
-        )
-        
-        # Top-K
-        new_top_k = st.slider(
-            "Top-K",
-            min_value=1,
-            max_value=500,
-            value=st.session_state.model_config['top_k'],
-            key="topk_slider"
-        )
-        
-        # Top-P
-        new_top_p = st.slider(
-            "Top-P",
-            min_value=0.00,
-            max_value=1.00,
-            value=st.session_state.model_config['top_p'],
-            step=0.01,
-            key="topp_slider"
-        )
-        
-        # Check if configuration changed
-        config_changed = (
-            new_model != st.session_state.model_config['model'] or
-            new_temp != st.session_state.model_config['temperature'] or
-            new_top_k != st.session_state.model_config['top_k'] or
-            new_top_p != st.session_state.model_config['top_p']
-        )
-        
-        if config_changed:
+# Configuration sidebar
+with config_col:
+    st.markdown("### ⚙️ Configurations")
+    st.divider()
+    
+    # Model selection
+    model_option = st.selectbox(
+        "Model",
+        ["Faster (Gemini 2.5 Flash)", "Powerful (Gemini 2.5 Pro)"],
+        index=0 if st.session_state.model_config['model'] == 'gemini-2.5-flash' else 1,
+        key="model_select"
+    )
+    new_model = 'gemini-2.5-flash' if "Faster" in model_option else 'gemini-2.5-pro'
+    
+    # Temperature
+    new_temp = st.slider(
+        "Temperature",
+        min_value=0.1,
+        max_value=1.5,
+        value=st.session_state.model_config['temperature'],
+        step=0.05,
+        key="temp_slider"
+    )
+    
+    # Top-K
+    new_top_k = st.slider(
+        "Top-K",
+        min_value=1,
+        max_value=500,
+        value=st.session_state.model_config['top_k'],
+        key="topk_slider"
+    )
+    
+    # Top-P
+    new_top_p = st.slider(
+        "Top-P",
+        min_value=0.00,
+        max_value=1.00,
+        value=st.session_state.model_config['top_p'],
+        step=0.01,
+        key="topp_slider"
+    )
+    
+    # Check if configuration changed
+    config_changed = (
+        new_model != st.session_state.model_config['model'] or
+        new_temp != st.session_state.model_config['temperature'] or
+        new_top_k != st.session_state.model_config['top_k'] or
+        new_top_p != st.session_state.model_config['top_p']
+    )
+    
+    if config_changed:
+        if not st.session_state.confirm_apply:
             if st.button("Apply Changes", type="primary", key="apply_config"):
-                st.session_state.model_config['model'] = new_model
-                st.session_state.model_config['temperature'] = new_temp
-                st.session_state.model_config['top_k'] = new_top_k
-                st.session_state.model_config['top_p'] = new_top_p
-                st.session_state.chat_session = None
-                st.success("Configuration updated!")
+                st.session_state.confirm_apply = True
                 st.rerun()
-        
-        st.divider()
-        
-        # Clear documents option
-        if st.button("Clear All Documents", type="secondary", key="clear_docs"):
-            # Reset ChromaDB collection
-            try:
-                chroma_client = chromadb.Client()
-                chroma_client.delete_collection("pagewise_docs")
-            except:
-                pass  # Collection might not exist
-            st.session_state.chroma_db = None
-            st.session_state.document_count = 0
-            st.session_state.processed_files = set()
-            st.session_state.messages = []  # Clear chat history
-            st.session_state.chat_session = None  # Reset chat session
-            st.success("All documents and chat history cleared!")
+        else:
+            st.warning("⚠️ This will restart your session and clear the current chat.")
+            col1, col2 = st.columns(2)
+            with col1:
+                if st.button("Confirm", key="confirm_apply_btn", type="primary"):
+                    # Update configuration
+                    st.session_state.model_config['model'] = new_model
+                    st.session_state.model_config['temperature'] = new_temp
+                    st.session_state.model_config['top_k'] = new_top_k
+                    st.session_state.model_config['top_p'] = new_top_p
+                    # Reset session
+                    reset_session(clear_all=False)
+                    st.success("Configuration updated!")
+                    time.sleep(0.5)  # Brief pause for user feedback
+                    st.rerun()
+            with col2:
+                if st.button("Cancel", key="cancel_apply_btn"):
+                    st.session_state.confirm_apply = False
+                    st.rerun()
+    
+    st.divider()
+    
+    # New Session button
+    if not st.session_state.confirm_new_session:
+        if st.button("New Session", type="secondary", key="new_session"):
+            st.session_state.confirm_new_session = True
             st.rerun()
+    else:
+        st.warning("⚠️ This will clear all documents and chat history.")
+        col1, col2 = st.columns(2)
+        with col1:
+            if st.button("Confirm", key="confirm_new_session_btn", type="primary"):
+                reset_session(clear_all=True)
+                st.success("New session started!")
+                time.sleep(0.5)  # Brief pause for user feedback
+                st.rerun()
+        with col2:
+            if st.button("Cancel", key="cancel_new_session_btn"):
+                st.session_state.confirm_new_session = False
+                st.rerun()
 
 # Initialize services
 client = init_gemini_client()
 if st.session_state.chroma_db is None:
     db, embed_fn = init_chromadb(client)
     st.session_state.chroma_db = db
+    st.session_state.embed_fn = embed_fn  # Store embed_fn in session state
 else:
     db = st.session_state.chroma_db
-    embed_fn = GeminiEmbeddingFunction(client)
+    embed_fn = st.session_state.embed_fn
 
 # Initialize chat session if needed
 if st.session_state.chat_session is None:
@@ -473,49 +463,29 @@ I'm ready to help you navigate through your documents efficiently. What would yo
     })
 
 # Display chat messages
-chat_container = st.container()
-with chat_container:
-    for message in st.session_state.messages:
-        with st.chat_message(message["role"]):
-            st.write(message["content"])
+with main_col:
+    chat_container = st.container()
+    with chat_container:
+        for message in st.session_state.messages:
+            with st.chat_message(message["role"]):
+                st.write(message["content"])
 
-# Sticky bottom input section
-bottom_container = st.container()
-with bottom_container:
-    st.markdown('<div class="stBottom">', unsafe_allow_html=True)
-    
-    # File uploader directly above chat input
-    col1, col2 = st.columns([5, 1])
-    with col1:
-        uploaded_files = st.file_uploader(
-            "📄 Drag and drop files here",
-            type=['pdf', 'docx'],
-            accept_multiple_files=True,
-            key="file_uploader",
-            help=f"Upload up to {MAX_FILES} PDF or DOCX files"
-        )
-    with col2:
-        if st.session_state.document_count > 0:
-            if st.button("🗑️", help="Clear all uploaded documents"):
-                # Reset ChromaDB collection
-                try:
-                    chroma_client = chromadb.Client()
-                    chroma_client.delete_collection("pagewise_docs")
-                except:
-                    pass
-                st.session_state.chroma_db = None
-                st.session_state.document_count = 0
-                st.session_state.processed_files = set()
-                st.session_state.messages = []  # Clear chat history
-                st.session_state.chat_session = None  # Reset chat session
-                st.rerun()
+# File uploader and chat input at the bottom of main column
+with main_col:
+    # File uploader with key to allow clearing
+    uploaded_files = st.file_uploader(
+        "📄 Drag and drop files here",
+        type=['pdf', 'docx'],
+        accept_multiple_files=True,
+        key=f"file_uploader_{st.session_state.file_uploader_key}",
+        help=f"Upload up to {MAX_FILES} PDF or DOCX files. Note: Individual file deletion is disabled - use 'New Session' to clear all files.",
+        disabled=False
+    )
     
     user_input = st.chat_input(
         "Ask about your documents or chat with me...",
         key="chat_input"
     )
-    
-    st.markdown('</div>', unsafe_allow_html=True)
 
 # Process uploaded files
 if uploaded_files:
@@ -549,63 +519,89 @@ if uploaded_files:
                 st.success(f"✅ Processed {len(new_files)} file(s) into {chunks_added} searchable chunks! You can now ask questions about your documents.")
 
 # Handle user input
-if user_input and st.session_state.document_count > 0:
-    # Add user message
-    st.session_state.messages.append({"role": "user", "content": user_input})
-    
-    # Display user message
-    with chat_container:
-        with st.chat_message("user"):
-            st.write(user_input)
-    
-    # Generate response
-    with chat_container:
-        with st.chat_message("assistant"):
-            response_placeholder = st.empty()
-            
-            # Show loading with timer
-            start_time = time.time()
-            with st.spinner("Thinking..."):
-                # Search for relevant documents
-                contexts = search_documents(user_input, db, embed_fn)
+if user_input:
+    if st.session_state.document_count == 0:
+        # Allow chatting without documents
+        st.session_state.messages.append({"role": "user", "content": user_input})
+        
+        with chat_container:
+            with st.chat_message("user"):
+                st.write(user_input)
+        
+        with chat_container:
+            with st.chat_message("assistant"):
+                response_placeholder = st.empty()
                 
-                # Build prompt with context
-                context_text = ""
-                if contexts:
-                    context_text = "\n\nRelevant document excerpts:\n"
-                    for ctx in contexts:
-                        chunk_info = f" - Chunk {ctx['chunk']}" if ctx.get('chunk', 0) > 0 else ""
-                        context_text += f"\n[{ctx['filename']} - Page {ctx['page']}{chunk_info}]\n{ctx['content']}\n"
+                # Show loading
+                start_time = time.time()
+                with st.spinner("Thinking..."):
+                    # Send message without document context
+                    response = st.session_state.chat_session.send_message(user_input)
+                    elapsed_time = time.time() - start_time
                 
-                prompt = f"""You are PageWise, a helpful document analysis assistant. Answer the user's question based on the provided document context. Be comprehensive but concise.
+                # Display response
+                response_placeholder.write(response.text)
+                st.caption(f"Generated in {elapsed_time:.1f}s")
+                
+                # Add to messages
+                st.session_state.messages.append({
+                    "role": "assistant",
+                    "content": response.text
+                })
+    else:
+        # Process with document context
+        st.session_state.messages.append({"role": "user", "content": user_input})
+        
+        # Display user message
+        with chat_container:
+            with st.chat_message("user"):
+                st.write(user_input)
+        
+        # Generate response
+        with chat_container:
+            with st.chat_message("assistant"):
+                response_placeholder = st.empty()
+                
+                # Show loading with timer
+                start_time = time.time()
+                with st.spinner("Thinking..."):
+                    # Search for relevant documents
+                    contexts = search_documents(user_input, db, embed_fn)
+                    
+                    # Build prompt with context
+                    context_text = ""
+                    if contexts:
+                        context_text = "\n\nRelevant document excerpts:\n"
+                        for ctx in contexts:
+                            chunk_info = f" - Chunk {ctx['chunk']}" if ctx.get('chunk', 0) > 0 else ""
+                            context_text += f"\n[{ctx['filename']} - Page {ctx['page']}{chunk_info}]\n{ctx['content']}\n"
+                    
+                    prompt = f"""You are PageWise, a helpful document analysis assistant. Answer the user's question based on the provided document context. Be comprehensive but concise.
 
 User Question: {user_input}
 
 {context_text}
 
 Please provide a clear and helpful answer based on the documents provided."""
+                    
+                    # Send message to Gemini
+                    response = st.session_state.chat_session.send_message(prompt)
+                    
+                    elapsed_time = time.time() - start_time
+                    
+                # Display response
+                response_placeholder.write(response.text)
+                st.caption(f"Generated in {elapsed_time:.1f}s")
                 
-                # Send message to Gemini
-                response = st.session_state.chat_session.send_message(prompt)
-                
-                elapsed_time = time.time() - start_time
-                
-            # Display response
-            response_placeholder.write(response.text)
-            st.caption(f"Generated in {elapsed_time:.1f}s")
-            
-            # Add to messages
-            st.session_state.messages.append({
-                "role": "assistant",
-                "content": response.text
-            })
+                # Add to messages
+                st.session_state.messages.append({
+                    "role": "assistant",
+                    "content": response.text
+                })
 
 # Info message about document status
-if st.session_state.document_count == 0:
-    st.info("📄 Please upload PDF or DOCX files to start analyzing documents. You can upload up to 5 files at once.")
-else:
-    col1, col2 = st.columns([3, 1])
-    with col1:
-        st.success(f"✅ {st.session_state.document_count} document chunks loaded and ready for analysis!")
-    with col2:
-        st.info(f"📚 {len(st.session_state.processed_files)} file(s) uploaded")
+with main_col:
+    if st.session_state.document_count == 0:
+        st.info("📄 Please upload PDF or DOCX files to start analyzing documents. You can upload up to 5 files at once.")
+    else:
+        st.success(f"✅ {st.session_state.document_count} document chunks loaded | 📚 {len(st.session_state.processed_files)} file(s) uploaded")
