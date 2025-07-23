@@ -8,6 +8,8 @@ PageLeaper is an intelligent document processing application that leverages adva
 
 The application is deployed via Google Cloud Run and is accessible at: https://pageleaper-431714973110.asia-southeast1.run.app
 
+> **Note**: The application password is `GENAI`
+
 ## Purpose and Use Cases
 
 PageLeaper transforms how users interact with extensive document collections by:
