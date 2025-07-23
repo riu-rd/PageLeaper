@@ -6,3 +6,6 @@ langchain-google-genai
 google
 google-genai
 python-dotenv
+chromadb
+pypdf2
+python-docx
