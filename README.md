@@ -6,8 +6,6 @@
 
 PageLeaper is an intelligent document processing application that leverages advanced AI capabilities to extract, analyze, and provide insights from large volumes of PDF and DOCX documents. Built with Streamlit and powered by Google's Gemini AI, it implements Retrieval-Augmented Generation (RAG) to enable intelligent querying of uploaded documents.
 
-The application is deployed via Google Cloud Run and is accessible at: https://pageleaper-431714973110.asia-southeast1.run.app
-
 > **Note**: The application password is `GENAI`
 
 ## Purpose and Use Cases
