@@ -269,8 +269,6 @@ PageLeaper is deployed on Google Cloud Platform using Cloud Run, providing:
 - Global accessibility
 - Containerized deployment
 
-Access the live application at: https://pageleaper-431714973110.asia-southeast1.run.app
-
 ## Technologies Used
 
 - **Streamlit**: Web application framework for the user interface
